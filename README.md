@@ -1,5 +1,7 @@
 # vue3-crx-template
 
+Vue3 Chrome Extensions Template
+
 ## Project setup
 ```
 pnpm install
@@ -7,7 +9,7 @@ pnpm install
 
 ### Compiles and hot-reloads for development
 ```
-pnpm run serve
+pnpm run dev
 ```
 
 ### Compiles and minifies for production
