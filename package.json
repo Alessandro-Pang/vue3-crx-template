@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "watch": "vue-cli-service build --watch --mode watch",
-    "dev": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "dev": "vue-cli-service serve",
+    "watch": "vue-cli-service build --watch --mode watch"
   },
   "dependencies": {
     "@types/chrome": "^0.0.268",

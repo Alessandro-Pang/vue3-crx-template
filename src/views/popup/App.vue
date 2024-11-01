@@ -4,11 +4,39 @@ const counterStore = useCounterStore();
 </script>
 
 <template>
-  <div>Chrome Extension Options Page</div>
-  <router-link style="margin-right: 10px" to="/">Go to Home</router-link>
-  <router-link style="margin-left: 10px" to="/about">Go to About</router-link>
-  <router-view />
-  <div>counter-getter: {{ counterStore.getCount }}</div>
+  <div class="wrapper">
+    <div>Chrome Extension Popup Page</div>
+    <router-link style="margin-right: 10px" to="/">Go to Home</router-link>
+    <router-link style="margin-left: 10px" to="/about">Go to About</router-link>
+    <router-view />
+    <div>counter-getter: {{ counterStore.getCount }}</div>
+  </div>
 </template>
 
-<style lang="scss"></style>
+<style lang="scss" scoped>
+.wrapper {
+  width: 220px;
+  border-radius: 6px;
+  background: #fff;
+  padding: 20px;
+  line-height: 26px;
+  box-shadow: 0 0 8px #000;
+  font-size: 14px;
+
+  &::v-deep(button) {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 0.2em 1em;
+    font-size: 1em;
+    font-weight: 500;
+    font-family: inherit;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    transition: border-color 0.25s;
+
+    &:hover {
+      border-color: #646cff;
+    }
+  }
+}
+</style>

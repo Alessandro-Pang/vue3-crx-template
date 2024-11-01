@@ -3,4 +3,10 @@ import App from "./App.vue";
 import router from "./router";
 import { createPinia } from "pinia";
 
-createApp(App).use(createPinia()).use(router).mount("#app");
+export default (rootContainer: string | HTMLElement) => {
+  const app = createApp(App);
+  app.use(createPinia());
+  app.use(router);
+  app.mount(rootContainer);
+  return app;
+};
