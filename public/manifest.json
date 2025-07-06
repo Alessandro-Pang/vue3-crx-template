@@ -26,5 +26,6 @@
     "run_at": "document_end",
     "all_frames": true
   }],
-  "permissions": ["sidePanel"]
+  "permissions": ["sidePanel", "tabs", "storage"],
+  "host_permissions": ["http://localhost:*/*", "https://localhost:*/*"]
 }

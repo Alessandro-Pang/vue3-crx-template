@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCounterStore } from "../store/counter";
+import { useCounterStore } from '../store/counter';
 const countStore = useCounterStore();
 const clickHandler = () => {
   countStore.addCount();

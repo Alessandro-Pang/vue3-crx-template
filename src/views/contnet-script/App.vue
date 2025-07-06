@@ -1,5 +1,14 @@
+<!--
+ * @Author: zi.yang
+ * @Date: 2024-11-01 10:41:42
+ * @LastEditors: zi.yang
+ * @LastEditTime: 2025-07-06 15:52:55
+ * @Description: 
+ * @FilePath: /vue3-crx-template/src/views/contnet-script/App.vue
+-->
 <script setup lang="ts">
-import { useCounterStore } from "./store/counter";
+import { useCounterStore } from './store/counter';
+
 const counterStore = useCounterStore();
 </script>
 
@@ -22,7 +31,7 @@ const counterStore = useCounterStore();
     font-size: 1em;
     font-weight: 500;
     font-family: inherit;
-    background-color: #f9f9f9;
+    background-color: #646cff;
     cursor: pointer;
     transition: border-color 0.25s;
 
