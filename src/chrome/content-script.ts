@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2024-07-19 17:52:37
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-06 15:52:35
+ * @LastEditTime: 2025-07-07 08:03:01
  * @Description: 
  * @FilePath: /vue3-crx-template/src/chrome/content-script.ts
  */
@@ -20,7 +20,7 @@ if (!existingElement) {
   dom.style.top = '60px';
   dom.style.right = '60px';
   dom.style.borderRadius = '6px';
-  dom.style.background = '#42b883'; // Vue green color
+  dom.style.background = '#42b883';
   dom.style.color = 'white';
   dom.style.padding = '20px';
   dom.style.lineHeight = '26px';
@@ -45,4 +45,127 @@ if (!existingElement) {
   dom.appendChild(removeButton);
 } else {
   console.log('Content script already injected, skipping...');
+}
+
+// 开发环境下的热重载支持
+if (process.env.NODE_ENV === 'development') {
+  console.log('Content script loaded in development mode');
+  
+  // 监听来自background的重载消息
+  chrome.runtime.onMessage.addListener((message: { type: string }) => {
+    if (message.type === 'reload-content-script') {
+      console.log('Content script reload requested');
+      // 清理现有的content script元素
+      const existingElement = document.getElementById('vue3-crx-content-script');
+      if (existingElement) {
+        existingElement.remove();
+      }
+      // 重载页面或重新注入
+      location.reload();
+    }
+  });
+  
+  // WebSocket 热重载客户端（仅用于通知，实际重载由 background 处理）
+  class ContentScriptHotReloadClient {
+    private ws: WebSocket | null = null;
+    private reconnectAttempts = 0;
+    private maxReconnectAttempts = 3;
+    private reconnectDelay = 2000;
+
+    constructor(private url: string = 'ws://localhost:9090') {
+      this.connect();
+    }
+
+    private connect() {
+      try {
+        this.ws = new WebSocket(this.url);
+        
+        this.ws.onopen = () => {
+          console.log('[ContentScript HotReload] Connected to hot reload server');
+          this.reconnectAttempts = 0;
+        };
+
+        this.ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            this.handleMessage(message);
+          } catch (error) {
+            console.error('[ContentScript HotReload] Failed to parse message:', error);
+          }
+        };
+
+        this.ws.onclose = () => {
+          console.log('[ContentScript HotReload] Disconnected from hot reload server');
+          this.scheduleReconnect();
+        };
+
+        this.ws.onerror = (error) => {
+          console.error('[ContentScript HotReload] WebSocket error:', error);
+        };
+      } catch (error) {
+        console.error('[ContentScript HotReload] Failed to create WebSocket connection:', error);
+        this.scheduleReconnect();
+      }
+    }
+
+    private handleMessage(message: { type: string; timestamp?: number; changedFiles?: string[] }) {
+      console.log('[ContentScript HotReload] Received message:', message);
+
+      switch (message.type) {
+        case 'connected':
+          console.log('[ContentScript HotReload] Server connection confirmed');
+          break;
+        case 'chrome-reload':
+          console.log('[ContentScript HotReload] Chrome extension files changed, notifying background...');
+          // 通知 background script 进行重载
+          try {
+            // 检查扩展上下文是否仍然有效
+            if (chrome.runtime && chrome.runtime.id) {
+              chrome.runtime.sendMessage({ type: 'request-reload' });
+            } else {
+              console.log('[ContentScript HotReload] Extension context invalidated, reloading page directly');
+              location.reload();
+            }
+          } catch (error) {
+            console.log('[ContentScript HotReload] Failed to send message to background, reloading page directly:', error);
+            location.reload();
+          }
+          break;
+        default:
+          console.log('[ContentScript HotReload] Unknown message type:', message.type);
+      }
+    }
+
+    private scheduleReconnect() {
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.reconnectAttempts++;
+        const delay = this.reconnectDelay * this.reconnectAttempts;
+        console.log(`[ContentScript HotReload] Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        
+        setTimeout(() => {
+          this.connect();
+        }, delay);
+      } else {
+        console.log('[ContentScript HotReload] Max reconnection attempts reached, giving up');
+      }
+    }
+
+    public disconnect() {
+      if (this.ws) {
+        this.ws.close();
+        this.ws = null;
+      }
+    }
+  }
+
+  // 初始化热重载客户端
+  const contentHotReloadClient = new ContentScriptHotReloadClient();
+
+  // 页面卸载时清理连接
+  window.addEventListener('beforeunload', () => {
+    contentHotReloadClient.disconnect();
+  });
+  
+  // 提供手动重载机制
+  console.log('Content script ready - use chrome.runtime.sendMessage({ type: "request-reload" }) to reload extension');
 }

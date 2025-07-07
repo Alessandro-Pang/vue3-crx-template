@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2024-07-21 17:36:34
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-06 15:16:49
+ * @LastEditTime: 2025-07-06 22:14:31
  * @Description:
  * @FilePath: /vue3-crx-template/.eslintrc.js
  */
@@ -11,6 +11,8 @@ module.exports = {
   env: {
     node: true,
     webextensions: true,
+    browser: true,
+    es2021: true,
   },
   extends: [
     'plugin:vue/vue3-essential',

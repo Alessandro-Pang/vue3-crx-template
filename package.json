@@ -6,7 +6,10 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "dev": "vue-cli-service serve",
-    "watch": "vue-cli-service build --watch --mode watch"
+    "watch": "vue-cli-service build --watch --mode watch",
+    "build:chrome": "webpack --config webpack.chrome.config.js",
+    "watch:chrome": "webpack --config webpack.chrome.config.js --watch",
+    "dev:chrome": "concurrently  -n \"VUE,CHROME\" -c \"bgBlue.bold,bgGreen.bold\"  \"vue-cli-service serve\" \"webpack --config webpack.chrome.config.js --watch\""
   },
   "dependencies": {
     "@types/chrome": "^0.0.329",
@@ -24,6 +27,8 @@
     "@vue/cli-plugin-typescript": "~5.0.8",
     "@vue/cli-service": "~5.0.8",
     "@vue/eslint-config-typescript": "^13.0.0",
+    "concurrently": "^9.2.0",
+    "css-loader": "^7.1.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.1",
@@ -31,7 +36,9 @@
     "prettier": "^3.6.2",
     "sass": "^1.89.2",
     "sass-loader": "^16.0.5",
+    "style-loader": "^4.0.0",
     "typescript": "~5.8.3",
+    "webpack-cli": "^6.0.1",
     "ws": "^8.18.3"
   }
 }
