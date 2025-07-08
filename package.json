@@ -2,14 +2,11 @@
   "name": "vue3-crx-template",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "dev": "vue-cli-service serve",
-    "watch": "vue-cli-service build --watch --mode watch",
-    "build:chrome": "webpack --config webpack.chrome.config.js",
-    "watch:chrome": "webpack --config webpack.chrome.config.js --watch",
-    "dev:chrome": "concurrently  -n \"VUE,CHROME\" -c \"bgBlue.bold,bgGreen.bold\"  \"vue-cli-service serve\" \"webpack --config webpack.chrome.config.js --watch\""
+    "dev": "concurrently  -n \"VUE,CHROME\" -c \"bgBlue.bold,bgGreen.bold\"  \"vue-cli-service serve\" \"webpack --config webpack.chrome.config.js --watch\""
   },
   "dependencies": {
     "@types/chrome": "^0.0.329",

@@ -20,12 +20,22 @@
   "side_panel": {
     "default_path": "side-panel.html"
   },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["chrome/content-script.js"],
-    "run_at": "document_end",
-    "all_frames": true
-  }],
-  "permissions": ["sidePanel", "tabs", "storage"],
-  "host_permissions": ["http://localhost:*/*", "https://localhost:*/*"]
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["chrome/content-script.js"],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ],
+  "permissions": [
+    "sidePanel",
+    "tabs",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ]
 }

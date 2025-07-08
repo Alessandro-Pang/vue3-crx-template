@@ -2,11 +2,11 @@
  * @Author: zi.yang
  * @Date: 2024-07-21 17:36:34
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-06 15:51:43
+ * @LastEditTime: 2025-07-08 07:39:02
  * @Description:
  * @FilePath: /vue3-crx-template/vue.config.js
  */
-const { defineConfig } = require('@vue/cli-service');
+import { defineConfig } from '@vue/cli-service';
 
 /**
  * 多页面入口
@@ -29,15 +29,22 @@ function createPagesIndex() {
   }, {});
 }
 
-module.exports = defineConfig({
+// webpack 入口配置，用于打包插件的背景脚本和内容脚本
+const chromeWebpack = {
+  'chrome:background': './src/chrome/background.ts',
+  'chrome:content-script': './src/chrome/content-script.ts',
+}
+
+const isProd = process.env.NODE_ENV === 'production';
+export default defineConfig({
   transpileDependencies: true,
   productionSourceMap: false,
   pages: createPagesIndex(),
   devServer: {
-    hot: true, // 禁用webpack热重载，使用自定义Chrome扩展重载
-    liveReload: true, // 禁用默认实时重载，使用自定义机制
+    hot: true,
+    liveReload: true,
     devMiddleware: {
-      writeToDisk: true, // 确保文件写入磁盘，Chrome扩展需要
+      writeToDisk: true,
     },
   },
   chainWebpack(config) {
@@ -52,12 +59,8 @@ module.exports = defineConfig({
     });
   },
   configureWebpack: {
-    devtool:
-      process.env.NODE_ENV === 'production' ? false : 'inline-source-map',
-    entry: {
-      'chrome:background': './src/chrome/background.ts',
-      'chrome:content-script': './src/chrome/content-script.ts',
-    },
+    devtool: isProd ? false : 'inline-source-map',
+    entry: isProd ? chromeWebpack : {},
     output: {
       filename: (pathData) => {
         if (pathData.chunk.name.startsWith('chrome:')) {

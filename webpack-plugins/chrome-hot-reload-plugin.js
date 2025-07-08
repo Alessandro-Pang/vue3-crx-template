@@ -1,4 +1,4 @@
-const WebSocket = require('ws');
+import { WebSocketServer, WebSocket } from 'ws';
 
 class ChromeHotReloadPlugin {
   constructor(options = {}) {
@@ -30,7 +30,7 @@ class ChromeHotReloadPlugin {
       if (this.clients.size > 0 && !stats.hasErrors()) {
         console.log('[ChromeHotReload] Compilation successful, sending reload notification');
         console.log('[ChromeHotReload] Connected clients:', this.clients.size);
-        
+
         this.notifyClients({
           type: 'chrome-reload',
           timestamp: Date.now(),
@@ -51,9 +51,9 @@ class ChromeHotReloadPlugin {
 
   startWebSocketServer() {
     try {
-      this.server = new WebSocket.Server({ 
-        port: this.options.port, 
-        host: this.options.host 
+      this.server = new WebSocketServer({
+        port: this.options.port,
+        host: this.options.host
       });
 
       this.server.on('connection', (ws) => {
@@ -90,7 +90,7 @@ class ChromeHotReloadPlugin {
   notifyClients(message) {
     const messageStr = JSON.stringify(message);
     console.log(`[ChromeHotReload] Notifying ${this.clients.size} clients:`, message.type);
-    
+
     this.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(messageStr);
@@ -102,7 +102,7 @@ class ChromeHotReloadPlugin {
 
   getChangedFiles(compilation) {
     const changedFiles = [];
-    
+
     // 方法1: 使用 webpack 5 的 modifiedFiles 和 removedFiles
     if (compilation.modifiedFiles) {
       changedFiles.push(...Array.from(compilation.modifiedFiles));
@@ -110,7 +110,7 @@ class ChromeHotReloadPlugin {
     if (compilation.removedFiles) {
       changedFiles.push(...Array.from(compilation.removedFiles));
     }
-    
+
     // 方法2: 备用方案 - 使用 fileSystemInfo
     if (changedFiles.length === 0 && compilation.fileSystemInfo && compilation.fileSystemInfo.fileTimestamps) {
       for (const [file, timestamp] of compilation.fileSystemInfo.fileTimestamps) {
@@ -119,10 +119,10 @@ class ChromeHotReloadPlugin {
         }
       }
     }
-    
+
     // 更新最后构建时间
     this.lastBuildTime = Date.now();
-    
+
     return changedFiles;
   }
 
@@ -141,4 +141,4 @@ class ChromeHotReloadPlugin {
   }
 }
 
-module.exports = ChromeHotReloadPlugin;
+export default ChromeHotReloadPlugin;
