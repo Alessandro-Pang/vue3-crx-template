@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2024-11-01 11:30:17
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-12 11:29:49
+ * @LastEditTime: 2025-07-12 13:34:14
  * @Description: 
  * @FilePath: /vue3-crx-template/src/views/content-script/views/HomeView.vue
 -->
@@ -59,6 +59,8 @@ const handleStatistic = () => {
 
 <style lang="scss">
 .vue3-crx-highlight {
+  padding: 4px 6px;
+  color: #000;
   background-color: yellow !important;
   transition: background-color 0.3s ease;
 }

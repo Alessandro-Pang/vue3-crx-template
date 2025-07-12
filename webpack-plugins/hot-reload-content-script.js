@@ -1,19 +1,52 @@
 // 热重载客户端代码 - 将在开发模式下注入到 content script 中
 console.log('Content script loaded in development mode');
 
+// 防抖变量
+let reloadTimeout = null;
+let lastReloadTime = 0;
+const RELOAD_DEBOUNCE_DELAY = 500; // 500ms防抖延迟
+
 // 监听来自background的重载消息
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'reload-content-script') {
     console.log('Content script reload requested');
-    // 清理现有的content script元素
-    const existingElement = document.getElementById('vue3-crx-content-script');
-    if (existingElement) {
-      existingElement.remove();
-    }
-    // 重载页面或重新注入
-    location.reload();
+    performReload();
   }
 });
+
+function performReload() {
+  const now = Date.now();
+  
+  // 防抖：如果距离上次重载时间太短，则忽略
+  if (now - lastReloadTime < RELOAD_DEBOUNCE_DELAY) {
+    console.log('[ContentScript HotReload] Reload request ignored due to debounce');
+    return;
+  }
+  
+  lastReloadTime = now;
+  
+  try {
+    // 尝试调用Vue应用的清理函数
+    if (window.cleanupVueApp && typeof window.cleanupVueApp === 'function') {
+      window.cleanupVueApp();
+      console.log('[ContentScript HotReload] Vue app cleaned up successfully');
+    } else {
+      // 备用清理方案
+      const existingElement = document.getElementById('vue3-crx-content-script');
+      if (existingElement) {
+        existingElement.remove();
+        console.log('[ContentScript HotReload] DOM element removed as fallback');
+      }
+    }
+  } catch (error) {
+    console.warn('[ContentScript HotReload] Error during cleanup:', error);
+  }
+  
+  // 延迟重载页面，确保清理完成
+  setTimeout(() => {
+    location.reload();
+  }, 100);
+}
 
 // WebSocket 热重载客户端（仅用于通知，实际重载由 background 处理）
 class ContentScriptHotReloadClient {
@@ -67,20 +100,27 @@ class ContentScriptHotReloadClient {
         break;
       case 'chrome-reload':
         console.log('[ContentScript HotReload] Chrome extension files changed, notifying background...');
-        // 通知 background script 进行重载
-        try {
-          // 检查扩展上下文是否仍然有效
-          if (chrome.runtime && chrome.runtime.id) {
-            chrome.runtime.sendMessage({ type: 'request-reload' });
-          } else {
-            console.log('[ContentScript HotReload] Extension context invalidated, reloading page directly');
-            location.reload();
-          }
-        } catch (error) {
-          console.log('[ContentScript HotReload] Failed to send message to background, reloading page directly:', error);
-          location.reload();
+        
+        // 清除之前的重载定时器
+        if (reloadTimeout) {
+          clearTimeout(reloadTimeout);
         }
-        // setTimeout(() => { window.location.reload() })
+        
+        // 防抖处理：延迟执行重载
+        reloadTimeout = setTimeout(() => {
+          try {
+            // 检查扩展上下文是否仍然有效
+            if (chrome.runtime && chrome.runtime.id) {
+              chrome.runtime.sendMessage({ type: 'request-reload' });
+            } else {
+              console.log('[ContentScript HotReload] Extension context invalidated, performing direct reload');
+              performReload();
+            }
+          } catch (error) {
+            console.log('[ContentScript HotReload] Failed to send message to background, performing direct reload:', error);
+            performReload();
+          }
+        }, 200); // 200ms防抖延迟
         break;
       default:
         console.log('[ContentScript HotReload] Unknown message type:', message.type);
