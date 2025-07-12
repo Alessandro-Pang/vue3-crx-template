@@ -8,7 +8,6 @@ const __dirname = path.dirname(__filename);
 
 class ChromeHotReloadPlugin {
   constructor(options = {}) {
-    console.log('[ChromeHotReload] Plugin constructor called with options:', options);
     this.options = {
       port: options.port || 9090,
       host: options.host || 'localhost',
@@ -24,22 +23,15 @@ class ChromeHotReloadPlugin {
   }
 
   apply(compiler) {
-    console.log('[ChromeHotReload] Plugin apply method called, NODE_ENV:', process.env.NODE_ENV);
-    console.log('[ChromeHotReload] Webpack mode:', compiler.options.mode);
     // 检查 webpack 模式而不是环境变量
     if (compiler.options.mode !== 'development') {
-      console.log('[ChromeHotReload] Not in development mode, skipping plugin');
       return;
     }
-    console.log('[ChromeHotReload] Setting up hooks...');
 
     // 在编译完成后注入热重载代码
     compiler.hooks.done.tap('ChromeHotReloadPlugin', (stats) => {
-      console.log('[ChromeHotReload] done hook triggered');
-
       // 检查是否有错误
       if (stats.hasErrors()) {
-        console.log('[ChromeHotReload] Build has errors, skipping hot reload');
         return;
       }
 
@@ -47,7 +39,6 @@ class ChromeHotReloadPlugin {
 
       const changedFiles = this.getChangedFiles(stats.compilation);
       if (changedFiles.length === 0) {
-        console.log('[ChromeHotReload] No changed files detected, skipping notification');
         return;
       }
 
@@ -60,7 +51,6 @@ class ChromeHotReloadPlugin {
       this.notifyTimeout = setTimeout(() => {
         const now = Date.now();
         if (now - this.lastNotifyTime < this.options.debounceDelay) {
-          console.log('[ChromeHotReload] Notification skipped due to debounce');
           return;
         }
 
@@ -92,16 +82,14 @@ class ChromeHotReloadPlugin {
       });
 
       this.server.on('connection', (ws) => {
-        console.log(`[ChromeHotReload] Client connected to ws://${this.options.host}:${this.options.port}`);
         this.clients.add(ws);
 
         ws.on('close', () => {
           this.clients.delete(ws);
-          console.log('[ChromeHotReload] Client disconnected');
         });
 
         ws.on('error', (error) => {
-          console.error('[ChromeHotReload] WebSocket error:', error);
+          console.error('[HotReload] WebSocket连接错误:', error.message);
           this.clients.delete(ws);
         });
 
@@ -113,19 +101,18 @@ class ChromeHotReloadPlugin {
       });
 
       this.server.on('error', (error) => {
-        console.error('[ChromeHotReload] WebSocket server error:', error);
+        console.error('[HotReload] WebSocket服务器错误:', error.message);
       });
 
-      console.log(`[ChromeHotReload] WebSocket server started on ws://${this.options.host}:${this.options.port}`);
+      console.log(`[HotReload] 热更新服务已启动 ws://${this.options.host}:${this.options.port}`);
     } catch (error) {
-      console.error('[ChromeHotReload] Failed to start WebSocket server:', error);
+      console.error('[HotReload] 启动WebSocket服务器失败:', error.message);
     }
   }
 
   notifyClients(message) {
     const messageStr = JSON.stringify(message);
-    console.log(`[ChromeHotReload] Notifying ${this.clients.size} clients:`, message.type);
-
+    
     this.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(messageStr);
@@ -137,12 +124,9 @@ class ChromeHotReloadPlugin {
 
   injectHotReloadCode(compilation) {
     const outputPath = compilation.outputOptions.path;
-    console.log('[ChromeHotReload] Output path:', outputPath);
 
     // 注入到 background.js
     const backgroundPath = path.join(outputPath, 'chrome', 'background.js');
-    console.log('[ChromeHotReload] Background path:', backgroundPath);
-    console.log('[ChromeHotReload] Background file exists:', fs.existsSync(backgroundPath));
     if (fs.existsSync(backgroundPath)) {
       this.injectToFile(backgroundPath, 'hot-reload-background.js', 'ChromeHotReloadClient', 'background.js');
     }
@@ -162,7 +146,6 @@ class ChromeHotReloadPlugin {
       const hotReloadMarker = '// Hot reload code injected by ChromeHotReloadPlugin';
 
       if (targetContent.includes(hotReloadMarker)) {
-        console.log(`[ChromeHotReload] Hot reload code already exists in ${fileName}, skipping injection`);
         return;
       }
 
@@ -177,10 +160,9 @@ class ChromeHotReloadPlugin {
 
       // 写入文件
       fs.writeFileSync(targetPath, injectedContent);
-      console.log(`[ChromeHotReload] Injected hot reload code into ${fileName}`);
 
     } catch (error) {
-      console.error(`[ChromeHotReload] Failed to inject hot reload code into ${fileName}:`, error);
+      console.error(`[HotReload] 注入热更新代码失败 ${fileName}:`, error.message);
     }
   }
 
@@ -230,7 +212,7 @@ class ChromeHotReloadPlugin {
     this.lastBuildTime = Date.now();
 
     if (filteredFiles.length > 0) {
-      console.log('[ChromeHotReload] Detected changes in:', filteredFiles.map(f => path.basename(f)));
+      console.log('[HotReload] 检测到文件变化:', filteredFiles.map(f => path.basename(f)).join(', '));
     }
 
     return filteredFiles;
@@ -244,7 +226,6 @@ class ChromeHotReloadPlugin {
     }
 
     if (this.server) {
-      console.log('[ChromeHotReload] Shutting down WebSocket server');
       this.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
           client.close();

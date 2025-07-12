@@ -2,9 +2,9 @@
  * @Author: zi.yang
  * @Date: 2024-11-01 10:41:42
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-12 13:04:12
+ * @LastEditTime: 2025-07-12 13:46:22
  * @Description: 
- * @FilePath: /vue3-crx-template/src/views/contnet-script/App.vue
+ * @FilePath: /vue3-crx-template/src/views/content-script/App.vue
 -->
 <script setup lang="ts">
 import { useCounterStore } from './store/counter';

@@ -2,7 +2,6 @@
 // 监听来自 content script 的消息
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'request-reload') {
-    console.log('Received reload request from content script');
     chrome.runtime.reload();
   }
 });
@@ -23,7 +22,6 @@ class ChromeHotReloadClient {
       this.ws = new WebSocket(this.url);
 
       this.ws.onopen = () => {
-        console.log('[ChromeHotReload] Connected to hot reload server');
         this.reconnectAttempts = 0;
       };
 
@@ -32,43 +30,35 @@ class ChromeHotReloadClient {
           const message = JSON.parse(event.data);
           this.handleMessage(message);
         } catch (error) {
-          console.error('[ChromeHotReload] Failed to parse message:', error);
+          console.error('[HotReload] 消息解析失败:', error.message);
         }
       };
 
       this.ws.onclose = () => {
-        console.log('[ChromeHotReload] Disconnected from hot reload server');
         this.scheduleReconnect();
       };
 
       this.ws.onerror = (error) => {
-        console.error('[ChromeHotReload] WebSocket error:', error);
+        console.error('[HotReload] WebSocket连接错误:', error.message);
       };
     } catch (error) {
-      console.error('[ChromeHotReload] Failed to create WebSocket connection:', error);
+      console.error('[HotReload] 创建WebSocket连接失败:', error.message);
       this.scheduleReconnect();
     }
   }
 
   handleMessage(message) {
-    console.log('[ChromeHotReload] Received message:', message);
-
     switch (message.type) {
       case 'connected':
-        console.log('[ChromeHotReload] Server connection confirmed');
         break;
       case 'chrome-reload':
-        console.log('[ChromeHotReload] Chrome extension files changed, reloading...');
-        if (message.changedFiles) {
-          console.log('[ChromeHotReload] Changed files:', message.changedFiles);
-        }
         // 延迟一点时间确保文件写入完成
         setTimeout(() => {
           chrome.runtime.reload();
         }, 100);
         break;
       default:
-        console.log('[ChromeHotReload] Unknown message type:', message.type);
+        break;
     }
   }
 
@@ -76,13 +66,10 @@ class ChromeHotReloadClient {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const delay = this.reconnectDelay * this.reconnectAttempts;
-      console.log(`[ChromeHotReload] Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
       setTimeout(() => {
         this.connect();
       }, delay);
-    } else {
-      console.log('[ChromeHotReload] Max reconnection attempts reached, giving up');
     }
   }
 

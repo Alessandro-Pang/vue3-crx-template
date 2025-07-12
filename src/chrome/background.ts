@@ -6,12 +6,8 @@
  * @Description:
  * @FilePath: /vue3-crx-template/src/chrome/background.ts
  */
-console.log('Background script loaded - test hot reload 5');
-
 // 监听扩展安装事件
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('Extension installed:', details.reason);
-
   // 设置默认存储数据
   chrome.storage.local.set({
     extensionEnabled: true,
@@ -28,8 +24,6 @@ chrome.runtime.onInstalled.addListener((details) => {
 // 监听标签页更新事件
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
-    console.log('页面加载完成:', tab.url);
-
     // 可以在这里执行一些后台任务
     // 比如检查页面类型、记录访问统计等
   }
@@ -37,10 +31,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // 监听标签页激活事件
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  chrome.tabs.get(activeInfo.tabId, (tab) => {
-    if (tab.url) {
-      console.log('切换到标签页:', tab.url);
-    }
+  chrome.tabs.get(activeInfo.tabId, () => {
+    // 可以在这里处理标签页切换逻辑
   });
 });
 
