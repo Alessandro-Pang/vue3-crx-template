@@ -29,9 +29,7 @@ class ChromeHotReloadPlugin {
     this.currentBuildChangedFiles = new Set();
 
     // 检查 webpack 模式而不是环境变量
-    if (compiler.options.mode !== 'development') {
-      return;
-    }
+    if (compiler.options.mode !== 'development') return;
 
     // 监听文件变化事件
     compiler.hooks.invalid.tap('ChromeHotReloadPlugin', (fileName) => {
@@ -47,7 +45,6 @@ class ChromeHotReloadPlugin {
 
     // 在编译完成后注入热重载代码
     compiler.hooks.done.tap('ChromeHotReloadPlugin', (stats) => {
-
       // 检查是否有错误
       if (stats.hasErrors()) {
         console.log('[HotReload] 编译有错误，跳过热更新');
@@ -62,10 +59,7 @@ class ChromeHotReloadPlugin {
       this.injectHotReloadCode(stats.compilation);
 
       const changedFiles = this.getChangedFiles(stats.compilation, true);
-      if (changedFiles.length === 0) {
-        console.log('[HotReload] 没有检测到文件变化');
-        return;
-      }
+      if (changedFiles.length === 0) return;
 
       // 防抖处理：清除之前的定时器
       if (this.notifyTimeout) {
@@ -94,22 +88,6 @@ class ChromeHotReloadPlugin {
       }
     });
 
-    // 添加afterCompile hook来检测文件变化
-    compiler.hooks.afterCompile.tap('ChromeHotReloadPlugin', (compilation) => {
-      if (!this.server) {
-        return;
-      }
-
-      const changedFiles = this.getChangedFiles(compilation);
-      if (changedFiles.length > 0) {
-        this.notifyClients({
-          type: 'chrome-reload',
-          timestamp: Date.now(),
-          changedFiles: changedFiles
-        });
-      }
-    });
-
     compiler.hooks.watchClose.tap('ChromeHotReloadPlugin', () => {
       this.cleanup();
     });
@@ -129,8 +107,7 @@ class ChromeHotReloadPlugin {
           this.clients.delete(ws);
         });
 
-        ws.on('error', (error) => {
-          console.error('[HotReload] WebSocket连接错误:', error.message);
+        ws.on('error', () => {
           this.clients.delete(ws);
         });
 
@@ -141,16 +118,13 @@ class ChromeHotReloadPlugin {
         }));
       });
 
-      server.on('error', (error) => {
-        console.error('[HotReload] WebSocket服务器错误:', error.message);
+      server.on('error', () => {
         this.server = null; // 重置服务器状态
       });
 
       // 只有在服务器成功启动后才设置this.server
       this.server = server;
-      console.log(`[HotReload] 热更新服务已启动 ws://${this.options.host}:${this.options.port}`);
-    } catch (error) {
-      console.error('[HotReload] 启动WebSocket服务器失败:', error.message);
+    } catch {
       this.server = null;
     }
   }
@@ -170,48 +144,38 @@ class ChromeHotReloadPlugin {
   injectHotReloadCode(compilation) {
     const outputPath = compilation.outputOptions.path;
 
-    // 注入到 background.js
     const backgroundPath = path.join(outputPath, 'chrome', 'background.js');
     if (fs.existsSync(backgroundPath)) {
-      this.injectToFile(backgroundPath, 'hot-reload-background.js', 'ChromeHotReloadClient', 'background.js');
+      this.injectToFile(backgroundPath, 'hot-reload-background.js');
     }
 
-    // 注入到 content-script.js
     const contentScriptPath = path.join(outputPath, 'chrome', 'content-script.js');
     if (fs.existsSync(contentScriptPath)) {
-      this.injectToFile(contentScriptPath, 'hot-reload-content-script.js', 'ContentScriptHotReloadClient', 'content-script.js');
+      this.injectToFile(contentScriptPath, 'hot-reload-content-script.js');
     }
   }
 
-  injectToFile(targetPath, hotReloadFileName, markerClass, fileName) {
+  injectToFile(targetPath, hotReloadFileName) {
     try {
       const targetContent = fs.readFileSync(targetPath, 'utf8');
-
-      // 更精确的检查：查找特定的标记注释
       const hotReloadMarker = '// Hot reload code injected by ChromeHotReloadPlugin';
 
       if (targetContent.includes(hotReloadMarker)) {
         return;
       }
 
-      // 读取热重载代码
       let hotReloadCode = fs.readFileSync(
         path.join(__dirname, hotReloadFileName),
         'utf8'
       );
 
-      // 替换WebSocket URL中的端口
       const wsUrl = `ws://${this.options.host}:${this.options.port}`;
       hotReloadCode = hotReloadCode.replace(/ws:\/\/localhost:9090/g, wsUrl);
 
-      // 添加标记注释和热重载代码
       const injectedContent = targetContent + '\n\n' + hotReloadMarker + '\n' + hotReloadCode;
-
-      // 写入文件
       fs.writeFileSync(targetPath, injectedContent);
-
-    } catch (error) {
-      console.error(`[HotReload] 注入热更新代码失败 ${fileName}:`, error.message);
+    } catch {
+      // 静默处理注入失败
     }
   }
 

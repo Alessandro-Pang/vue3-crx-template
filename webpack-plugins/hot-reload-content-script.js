@@ -14,14 +14,14 @@ chrome.runtime.onMessage.addListener((message) => {
 
 function performReload() {
   const now = Date.now();
-  
+
   // 防抖：如果距离上次重载时间太短，则忽略
   if (now - lastReloadTime < RELOAD_DEBOUNCE_DELAY) {
     return;
   }
-  
+
   lastReloadTime = now;
-  
+
   try {
     // 尝试调用Vue应用的清理函数
     if (window.cleanupVueApp && typeof window.cleanupVueApp === 'function') {
@@ -33,10 +33,10 @@ function performReload() {
         existingElement.remove();
       }
     }
-  } catch (error) {
-    console.warn('[HotReload] 清理过程出错:', error.message);
+  } catch {
+    // 静默处理清理错误
   }
-  
+
   // 延迟重载页面，确保清理完成
   setTimeout(() => {
     location.reload();
@@ -66,8 +66,8 @@ class ContentScriptHotReloadClient {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message);
-        } catch (error) {
-          console.error('[HotReload] 消息解析失败:', error.message);
+        } catch {
+          // 静默处理消息解析错误
         }
       };
 
@@ -75,11 +75,10 @@ class ContentScriptHotReloadClient {
         this.scheduleReconnect();
       };
 
-      this.ws.onerror = (error) => {
-        console.error('[HotReload] WebSocket连接错误:', error.message);
+      this.ws.onerror = () => {
+        // 静默处理连接错误
       };
-    } catch (error) {
-      console.error('[HotReload] 创建WebSocket连接失败:', error.message);
+    } catch {
       this.scheduleReconnect();
     }
   }
@@ -93,7 +92,7 @@ class ContentScriptHotReloadClient {
         if (reloadTimeout) {
           clearTimeout(reloadTimeout);
         }
-        
+
         // 防抖处理：延迟执行重载
         reloadTimeout = setTimeout(() => {
           try {
@@ -139,5 +138,3 @@ const contentHotReloadClient = new ContentScriptHotReloadClient();
 window.addEventListener('beforeunload', () => {
   contentHotReloadClient.disconnect();
 });
-
-// 提供手动重载机制

@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2024-10-31 21:56:15
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-12 19:25:20
+ * @LastEditTime: 2025-07-13 00:18:42
  * @Description: 
  * @FilePath: /vue3-crx-template/src/views/content-script/main.ts
  */
@@ -35,7 +35,6 @@ function cleanupApp() {
   if (currentApp) {
     try {
       currentApp.unmount();
-      console.log('[ContentScript] Vue app unmounted successfully');
     } catch (error) {
       console.warn('[ContentScript] Error unmounting Vue app:', error);
     }
@@ -46,7 +45,6 @@ function cleanupApp() {
   const existingElement = document.getElementById(APP_ELEMENT_ID);
   if (existingElement) {
     existingElement.remove();
-    console.log('[ContentScript] DOM element removed');
   }
 }
 

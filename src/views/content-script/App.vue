@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2024-11-01 10:41:42
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-12 19:49:16
+ * @LastEditTime: 2025-07-13 00:19:35
  * @Description: 
  * @FilePath: /vue3-crx-template/src/views/content-script/App.vue
 -->
@@ -20,7 +20,7 @@ const counterStore = useCounterStore();
     <router-view />
     <div>counter-getter: {{ counterStore.getCount }}</div>
     <div style="margin-top: 10px; color: #ffeb3b">
-      ✨ 热更新测试成功！ (修改时间:
+      ✨ 热重载测试成功！ (修改时间:
       {{ new Date().toLocaleTimeString() }})
     </div>
   </div>

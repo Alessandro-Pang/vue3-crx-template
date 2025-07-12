@@ -29,8 +29,8 @@ class ChromeHotReloadClient {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message);
-        } catch (error) {
-          console.error('[HotReload] 消息解析失败:', error.message);
+        } catch {
+          // 静默处理消息解析错误
         }
       };
 
@@ -38,11 +38,10 @@ class ChromeHotReloadClient {
         this.scheduleReconnect();
       };
 
-      this.ws.onerror = (error) => {
-        console.error('[HotReload] WebSocket连接错误:', error.message);
+      this.ws.onerror = () => {
+        // 静默处理连接错误
       };
-    } catch (error) {
-      console.error('[HotReload] 创建WebSocket连接失败:', error.message);
+    } catch {
       this.scheduleReconnect();
     }
   }
