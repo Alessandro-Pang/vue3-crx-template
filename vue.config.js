@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2024-07-21 17:36:34
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-08 07:39:02
+ * @LastEditTime: 2025-07-13 00:49:51
  * @Description:
  * @FilePath: /vue3-crx-template/vue.config.js
  */
@@ -57,12 +57,24 @@ export default defineConfig({
       });
       return definitions;
     });
+
+    config.plugin('extract-css').tap((args) => {
+      args[0].filename = (pathData) => {
+        if (pathData.chunk.name.startsWith('chrome:')) {
+          const path = pathData.chunk.name.replace(':', '/');
+          return `${path}.css`;
+        }
+        return 'css/[name].[contenthash].css'
+      }
+      return args;
+    })
   },
   configureWebpack: {
     devtool: isProd ? false : 'inline-source-map',
     entry: isProd ? chromeWebpack : {},
     output: {
       filename: (pathData) => {
+        console.log(pathData.chunk.name)
         if (pathData.chunk.name.startsWith('chrome:')) {
           const path = pathData.chunk.name.replace(':', '/');
           return `${path}.js`;

@@ -24,18 +24,11 @@
     {
       "matches": ["<all_urls>"],
       "js": ["chrome/content-script.js"],
+      "css": ["css/content-script.css"],
       "run_at": "document_end",
       "all_frames": true
     }
   ],
-  "permissions": [
-    "sidePanel",
-    "tabs",
-    "storage",
-    "activeTab",
-    "scripting"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ]
+  "permissions": ["sidePanel", "tabs", "storage", "activeTab", "scripting"],
+  "host_permissions": ["<all_urls>"]
 }

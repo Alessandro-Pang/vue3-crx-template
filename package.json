@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "rimraf dist && concurrently  -n \"VUE,CHROME\" -c \"bgBlue.bold,bgGreen.bold\"  \"vue-cli-service serve\" \"webpack --config webpack.chrome.config.js --watch\"",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint",
-    "dev": "rimraf dist && concurrently  -n \"VUE,CHROME\" -c \"bgBlue.bold,bgGreen.bold\"  \"vue-cli-service serve\" \"webpack --config webpack.chrome.config.js --watch\""
+    "lint": "vue-cli-service lint"
   },
   "dependencies": {
     "@types/chrome": "^0.1.0",
@@ -35,7 +35,7 @@
     "sass": "^1.89.2",
     "sass-loader": "^16.0.5",
     "style-loader": "^4.0.0",
-    "typescript": "~5.8.3",
+    "typescript": "~5.5.4",
     "webpack-cli": "^6.0.1",
     "ws": "^8.18.3"
   }
