@@ -6,7 +6,7 @@
  * @Description: 
  * @FilePath: /vue3-crx-template/src/chrome/content-script.ts
  */
-import createVueApp from '@/views/contnet-script/main';
+import createVueApp from '@/views/content-script/main';
 
 console.log('Content script loaded - with hot reload support!');
 
