@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2024-11-01 10:41:42
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-08 07:56:20
+ * @LastEditTime: 2025-07-12 13:04:12
  * @Description: 
  * @FilePath: /vue3-crx-template/src/views/contnet-script/App.vue
 -->
@@ -24,6 +24,12 @@ const counterStore = useCounterStore();
 
 <style lang="scss" scoped>
 .wrapper {
+  padding: 10px 16px;
+  background: #41b883;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+
   &::v-deep(button) {
     border-radius: 8px;
     border: 1px solid transparent;

@@ -1,7 +1,14 @@
 import { WebSocketServer, WebSocket } from 'ws';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class ChromeHotReloadPlugin {
   constructor(options = {}) {
+    console.log('[ChromeHotReload] Plugin constructor called with options:', options);
     this.options = {
       port: options.port || 9090,
       host: options.host || 'localhost',
@@ -14,37 +21,33 @@ class ChromeHotReloadPlugin {
   }
 
   apply(compiler) {
-    // 只在开发模式下启用
+    console.log('[ChromeHotReload] Plugin apply method called, NODE_ENV:', process.env.NODE_ENV);
+    console.log('[ChromeHotReload] Webpack mode:', compiler.options.mode);
+    // 检查 webpack 模式而不是环境变量
     if (compiler.options.mode !== 'development') {
+      console.log('[ChromeHotReload] Not in development mode, skipping plugin');
       return;
     }
+    console.log('[ChromeHotReload] Setting up hooks...');
 
-    // 启动 WebSocket 服务器
-    compiler.hooks.afterPlugins.tap('ChromeHotReloadPlugin', () => {
-      this.startWebSocketServer();
+    // 在编译完成后注入热重载代码
+    compiler.hooks.done.tap('ChromeHotReloadPlugin', (stats) => {
+      console.log('[ChromeHotReload] done hook triggered');
+      this.injectHotReloadCode(stats.compilation);
+      this.notifyClients({
+        type: 'chrome-reload',
+        timestamp: Date.now(),
+        changedFiles: this.getChangedFiles(stats.compilation)
+      });
     });
 
-    // 监听编译完成事件
-    compiler.hooks.done.tap('ChromeHotReloadPlugin', (stats) => {
-      // 简化逻辑：如果有客户端连接且编译成功，就发送重载通知
-      if (this.clients.size > 0 && !stats.hasErrors()) {
-        console.log('[ChromeHotReload] Compilation successful, sending reload notification');
-        console.log('[ChromeHotReload] Connected clients:', this.clients.size);
-
-        this.notifyClients({
-          type: 'chrome-reload',
-          timestamp: Date.now(),
-          changedFiles: []
-        });
-      } else if (this.clients.size === 0) {
-        console.log('[ChromeHotReload] Compilation done but no clients connected');
-      } else if (stats.hasErrors()) {
-        console.log('[ChromeHotReload] Compilation has errors, skipping reload');
+    compiler.hooks.watchRun.tap('ChromeHotReloadPlugin', () => {
+      if (!this.server) {
+        this.startWebSocketServer();
       }
     });
 
-    // 编译器关闭时清理资源
-    compiler.hooks.shutdown.tap('ChromeHotReloadPlugin', () => {
+    compiler.hooks.watchClose.tap('ChromeHotReloadPlugin', () => {
       this.cleanup();
     });
   }
@@ -98,6 +101,51 @@ class ChromeHotReloadPlugin {
         this.clients.delete(client);
       }
     });
+  }
+
+  injectHotReloadCode(compilation) {
+    const outputPath = compilation.outputOptions.path;
+    console.log('[ChromeHotReload] Output path:', outputPath);
+    
+    // 注入到 background.js
+    const backgroundPath = path.join(outputPath, 'chrome', 'background.js');
+    console.log('[ChromeHotReload] Background path:', backgroundPath);
+    console.log('[ChromeHotReload] Background file exists:', fs.existsSync(backgroundPath));
+    if (fs.existsSync(backgroundPath)) {
+      const backgroundContent = fs.readFileSync(backgroundPath, 'utf8');
+      
+      // 检查是否已经注入过热重载代码
+      if (!backgroundContent.includes('ChromeHotReloadClient')) {
+        const hotReloadBackgroundCode = fs.readFileSync(
+          path.join(__dirname, 'hot-reload-background.js'),
+          'utf8'
+        );
+        const injectedContent = backgroundContent + '\n\n' + hotReloadBackgroundCode;
+        fs.writeFileSync(backgroundPath, injectedContent);
+        console.log('[ChromeHotReload] Injected hot reload code into background.js');
+      } else {
+        console.log('[ChromeHotReload] Hot reload code already exists in background.js, skipping injection');
+      }
+    }
+    
+    // 注入到 content-script.js
+    const contentScriptPath = path.join(outputPath, 'chrome', 'content-script.js');
+    if (fs.existsSync(contentScriptPath)) {
+      const contentScriptContent = fs.readFileSync(contentScriptPath, 'utf8');
+      
+      // 检查是否已经注入过热重载代码
+      if (!contentScriptContent.includes('ContentScriptHotReloadClient')) {
+        const hotReloadContentCode = fs.readFileSync(
+          path.join(__dirname, 'hot-reload-content-script.js'),
+          'utf8'
+        );
+        const injectedContent = contentScriptContent + '\n\n' + hotReloadContentCode;
+        fs.writeFileSync(contentScriptPath, injectedContent);
+        console.log('[ChromeHotReload] Injected hot reload code into content-script.js');
+      } else {
+        console.log('[ChromeHotReload] Hot reload code already exists in content-script.js, skipping injection');
+      }
+    }
   }
 
   getChangedFiles(compilation) {
