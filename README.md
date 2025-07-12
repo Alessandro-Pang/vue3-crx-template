@@ -1,25 +1,151 @@
-# vue3-crx-template
+# Vue3 Chrome Extension Template
 
-Vue3 Chrome Extensions Template
+一个功能相对完善且可以开箱即用的 Vue3 Chrome 扩展开发模板，支持 Manifest V3，集成了现代化的开发工具链和热重载功能。
 
-## Project setup
+## ✨ 特性
+
+- 🚀 **Vue 3** + **TypeScript** + **Pinia** 状态管理
+- 📦 **Manifest V3** 支持
+- 🔥 **热重载** 开发体验
+- 🎯 **多页面架构** - 支持 popup、options、devtools、side-panel 等
+- 📝 **Content Script** 注入支持
+- 🛠️ **完整的开发工具链** - ESLint、Prettier、Sass
+- 🔧 **自定义 Webpack 配置** 优化构建
+
+## 📁 项目结构
+
+```tree
+vue3-crx-template/
+├── public/
+│   ├── manifest.json          # Chrome 扩展配置文件
+│   ├── icons/                 # 扩展图标
+│   └── index.html            # HTML 模板
+├── src/
+│   ├── chrome/
+│   │   ├── background.ts      # Service Worker 后台脚本
+│   │   └── content-script.ts  # 内容脚本
+│   ├── views/
+│   │   ├── popup/            # 弹出页面
+│   │   ├── options/          # 选项页面
+│   │   ├── devtools/         # 开发者工具页面
+│   │   ├── side-panel/       # 侧边栏页面
+│   │   ├── panel/            # 面板页面
+│   │   └── content-script/   # 内容脚本 Vue 组件
+│   └── components/           # 共享组件
+├── webpack-plugins/          # 自定义 Webpack 插件
+└── webpack.chrome.config.js  # Chrome 扩展专用构建配置
+```
+
+## 🚀 快速开始
+
+### 环境要求
+
+- Node.js >= 16
+- pnpm (推荐) 或 npm
+
+### 安装依赖
 
 ```bash
 pnpm install
 ```
 
-### Compiles and minifies for production
+### 开发模式
+
+```bash
+pnpm run dev
+```
+
+此命令会：
+
+- 启动 Vue 开发服务器
+- 监听 Chrome 扩展文件变化
+- 支持热重载功能
+
+### 构建生产版本
 
 ```bash
 pnpm run build
 ```
 
-### Lints and fixes files
+构建完成后，`dist` 目录包含可直接加载到 Chrome 的扩展文件。
+
+### 代码检查和格式化
 
 ```bash
 pnpm run lint
 ```
 
-### Customize configuration
+## 🔧 Chrome 扩展加载
 
-See [Configuration Reference](https://cli.vuejs.org/config/).
+1. 打开 Chrome 浏览器
+2. 访问 `chrome://extensions/`
+3. 开启「开发者模式」
+4. 点击「加载已解压的扩展程序」
+5. 选择项目的 `dist` 目录
+
+## 📖 页面说明
+
+### Popup 页面
+
+点击扩展图标时显示的弹出窗口，适合放置快速操作和状态展示。
+
+### Options 页面
+
+扩展的设置页面，用户可以在这里配置扩展的各种选项。
+
+### DevTools 页面
+
+集成到 Chrome 开发者工具中的面板，适合开发调试工具。
+
+### Side Panel 页面
+
+Chrome 侧边栏页面，提供持久化的用户界面。
+
+### Content Script
+
+注入到网页中的脚本，可以与页面内容进行交互。
+
+## 🛠️ 技术栈
+
+- **前端框架**: Vue 3 + Composition API
+- **类型系统**: TypeScript
+- **状态管理**: Pinia
+- **路由**: Vue Router 4
+- **样式**: Sass/SCSS
+- **构建工具**: Vue CLI + Webpack
+- **代码规范**: ESLint + Prettier
+- **包管理**: pnpm
+
+## 📝 开发指南
+
+### 添加新页面
+
+1. 在 `src/views/` 下创建新的页面目录
+2. 在 `vue.config.js` 的 `chromePageList` 数组中添加页面名称
+3. 在 `public/manifest.json` 中配置相应的页面入口
+
+### 权限配置
+
+在 `public/manifest.json` 中的 `permissions` 和 `host_permissions` 字段配置所需权限。
+
+### 热重载
+
+开发模式下支持以下热重载：
+
+- Vue 组件热重载
+- Background Script 自动重载
+- Content Script 自动重载
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📄 许可证
+
+[MIT License](LICENSE)
+
+## 🔗 相关链接
+
+- [Chrome Extensions API](https://developer.chrome.com/docs/extensions/)
+- [Vue 3 文档](https://vuejs.org/)
+- [Manifest V3 迁移指南](https://developer.chrome.com/docs/extensions/migrating/)

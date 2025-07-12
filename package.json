@@ -2,6 +2,7 @@
   "name": "vue3-crx-template",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "rimraf dist && concurrently  -n \"VUE,CHROME\" -c \"bgBlue.bold,bgGreen.bold\"  \"vue-cli-service serve\" \"webpack --config webpack.chrome.config.js --watch\"",
