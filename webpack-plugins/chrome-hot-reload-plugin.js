@@ -23,22 +23,47 @@ class ChromeHotReloadPlugin {
   }
 
   apply(compiler) {
+    // 存储上次构建时间
+    this.lastBuildTime = Date.now();
+    this.changedFiles = new Set();
+    this.currentBuildChangedFiles = new Set();
+
     // 检查 webpack 模式而不是环境变量
     if (compiler.options.mode !== 'development') {
       return;
     }
 
+    // 监听文件变化事件
+    compiler.hooks.invalid.tap('ChromeHotReloadPlugin', (fileName) => {
+      if (fileName) {
+        this.changedFiles.add(fileName);
+      }
+    });
+
+    // 在编译开始时保存当前变化的文件
+    compiler.hooks.compile.tap('ChromeHotReloadPlugin', () => {
+      this.currentBuildChangedFiles = new Set(this.changedFiles);
+    });
+
     // 在编译完成后注入热重载代码
     compiler.hooks.done.tap('ChromeHotReloadPlugin', (stats) => {
+
       // 检查是否有错误
       if (stats.hasErrors()) {
+        console.log('[HotReload] 编译有错误，跳过热更新');
+        return;
+      }
+
+      if (!this.server) {
+        console.log('[HotReload] WebSocket服务器未启动');
         return;
       }
 
       this.injectHotReloadCode(stats.compilation);
 
-      const changedFiles = this.getChangedFiles(stats.compilation);
+      const changedFiles = this.getChangedFiles(stats.compilation, true);
       if (changedFiles.length === 0) {
+        console.log('[HotReload] 没有检测到文件变化');
         return;
       }
 
@@ -69,6 +94,22 @@ class ChromeHotReloadPlugin {
       }
     });
 
+    // 添加afterCompile hook来检测文件变化
+    compiler.hooks.afterCompile.tap('ChromeHotReloadPlugin', (compilation) => {
+      if (!this.server) {
+        return;
+      }
+
+      const changedFiles = this.getChangedFiles(compilation);
+      if (changedFiles.length > 0) {
+        this.notifyClients({
+          type: 'chrome-reload',
+          timestamp: Date.now(),
+          changedFiles: changedFiles
+        });
+      }
+    });
+
     compiler.hooks.watchClose.tap('ChromeHotReloadPlugin', () => {
       this.cleanup();
     });
@@ -76,12 +117,12 @@ class ChromeHotReloadPlugin {
 
   startWebSocketServer() {
     try {
-      this.server = new WebSocketServer({
+      const server = new WebSocketServer({
         port: this.options.port,
         host: this.options.host
       });
 
-      this.server.on('connection', (ws) => {
+      server.on('connection', (ws) => {
         this.clients.add(ws);
 
         ws.on('close', () => {
@@ -100,19 +141,23 @@ class ChromeHotReloadPlugin {
         }));
       });
 
-      this.server.on('error', (error) => {
+      server.on('error', (error) => {
         console.error('[HotReload] WebSocket服务器错误:', error.message);
+        this.server = null; // 重置服务器状态
       });
 
+      // 只有在服务器成功启动后才设置this.server
+      this.server = server;
       console.log(`[HotReload] 热更新服务已启动 ws://${this.options.host}:${this.options.port}`);
     } catch (error) {
       console.error('[HotReload] 启动WebSocket服务器失败:', error.message);
+      this.server = null;
     }
   }
 
   notifyClients(message) {
     const messageStr = JSON.stringify(message);
-    
+
     this.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(messageStr);
@@ -150,10 +195,14 @@ class ChromeHotReloadPlugin {
       }
 
       // 读取热重载代码
-      const hotReloadCode = fs.readFileSync(
+      let hotReloadCode = fs.readFileSync(
         path.join(__dirname, hotReloadFileName),
         'utf8'
       );
+
+      // 替换WebSocket URL中的端口
+      const wsUrl = `ws://${this.options.host}:${this.options.port}`;
+      hotReloadCode = hotReloadCode.replace(/ws:\/\/localhost:9090/g, wsUrl);
 
       // 添加标记注释和热重载代码
       const injectedContent = targetContent + '\n\n' + hotReloadMarker + '\n' + hotReloadCode;
@@ -166,56 +215,16 @@ class ChromeHotReloadPlugin {
     }
   }
 
-  getChangedFiles(compilation) {
-    const changedFiles = [];
-    const relevantExtensions = ['.ts', '.js', '.vue', '.css', '.scss', '.sass', '.less'];
+  getChangedFiles(compilation, clearFiles = false) {
+    const changedFiles = Array.from(this.currentBuildChangedFiles);
 
-    // 方法1: 使用 webpack 5 的 modifiedFiles 和 removedFiles
-    if (compilation.modifiedFiles) {
-      changedFiles.push(...Array.from(compilation.modifiedFiles));
-    }
-    if (compilation.removedFiles) {
-      changedFiles.push(...Array.from(compilation.removedFiles));
+    // 只在明确指定时才清空文件列表
+    if (clearFiles) {
+      this.changedFiles.clear();
+      this.currentBuildChangedFiles.clear();
     }
 
-    // 方法2: 备用方案 - 使用 fileSystemInfo
-    if (changedFiles.length === 0 && compilation.fileSystemInfo && compilation.fileSystemInfo.fileTimestamps) {
-      for (const [file, timestamp] of compilation.fileSystemInfo.fileTimestamps) {
-        if (timestamp && timestamp > this.lastBuildTime) {
-          changedFiles.push(file);
-        }
-      }
-    }
-
-    // 过滤相关文件：只关注源代码文件的变化
-    const filteredFiles = changedFiles.filter(file => {
-      // 排除 node_modules
-      if (file.includes('node_modules')) {
-        return false;
-      }
-
-      // 排除热重载相关文件
-      if (file.includes('hot-reload') || file.includes('webpack-plugins')) {
-        return false;
-      }
-
-      // 只包含相关扩展名的文件
-      const hasRelevantExtension = relevantExtensions.some(ext => file.endsWith(ext));
-      if (!hasRelevantExtension) {
-        return false;
-      }
-
-      return true;
-    });
-
-    // 更新最后构建时间
-    this.lastBuildTime = Date.now();
-
-    if (filteredFiles.length > 0) {
-      console.log('[HotReload] 检测到文件变化:', filteredFiles.map(f => path.basename(f)).join(', '));
-    }
-
-    return filteredFiles;
+    return changedFiles;
   }
 
   cleanup() {
