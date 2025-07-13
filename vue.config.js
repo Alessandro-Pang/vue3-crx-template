@@ -1,12 +1,15 @@
 /*
  * @Author: zi.yang
- * @Date: 2024-07-21 17:36:34
+ * @Date: 2025-07-07 07:50:16
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-13 00:49:51
- * @Description:
+ * @LastEditTime: 2025-07-13 11:33:00
+ * @Description: 
  * @FilePath: /vue3-crx-template/vue.config.js
  */
 import { defineConfig } from '@vue/cli-service';
+
+import ManifestProcessorPlugin
+  from './webpack-plugins/manifest-processor-plugin.js';
 
 /**
  * 多页面入口
@@ -58,23 +61,29 @@ export default defineConfig({
       return definitions;
     });
 
-    config.plugin('extract-css').tap((args) => {
-      args[0].filename = (pathData) => {
-        if (pathData.chunk.name.startsWith('chrome:')) {
-          const path = pathData.chunk.name.replace(':', '/');
-          return `${path}.css`;
+    // 添加 Manifest 处理插件
+    config.plugin('manifest-processor').use(ManifestProcessorPlugin, [{
+      isDev: process.env.NODE_ENV !== 'production'
+    }]);
+
+    if (process.env.NODE_ENV === 'production') {
+      config.plugin('extract-css').tap((args) => {
+        args[0].filename = (pathData) => {
+          if (pathData.chunk.name.startsWith('chrome:')) {
+            const path = pathData.chunk.name.replace(':', '/');
+            return `${path}.css`;
+          }
+          return 'css/[name].[contenthash].css'
         }
-        return 'css/[name].[contenthash].css'
-      }
-      return args;
-    })
+        return args;
+      })
+    }
   },
   configureWebpack: {
     devtool: isProd ? false : 'inline-source-map',
     entry: isProd ? chromeWebpack : {},
     output: {
       filename: (pathData) => {
-        console.log(pathData.chunk.name)
         if (pathData.chunk.name.startsWith('chrome:')) {
           const path = pathData.chunk.name.replace(':', '/');
           return `${path}.js`;
