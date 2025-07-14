@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2025-07-13 11:31:31
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-14 08:17:36
+ * @LastEditTime: 2025-07-14 22:48:21
  * @Description: 动态处理 manifest.json，支持自动写入 content scripts 和 background
  * @FilePath: /vue3-crx-template/webpack-plugins/manifest-processor-plugin.js
  */
@@ -45,23 +45,27 @@ class ManifestProcessorPlugin {
       return this.detectScriptsFromDist();
     }
 
-    // 检测 background script
+    // 检测 background script (支持 contenthash)
     const backgroundJs = assets.find(
-      (asset) => asset === 'chrome/background.js'
+      (asset) => asset.match(/^chrome\/background\.[a-f0-9]+\.js$/) || asset === 'chrome/background.js'
     );
     if (backgroundJs) {
       scripts.background = backgroundJs;
     }
 
-    // 检测 content scripts
-    const contentScriptPattern = /^chrome\/content-script(?:-\w+)?\.js$/;
+    // 检测 content scripts (支持 contenthash)
+    const contentScriptPattern = /^chrome\/content-script(?:-\w+)?(?:\.[a-f0-9]+)?\.js$/;
     const contentScriptJs = assets.filter((asset) =>
       contentScriptPattern.test(asset)
     );
 
     contentScriptJs.forEach((jsFile) => {
-      const baseName = jsFile.replace(/\.js$/, '');
-      const cssFile = assets.find((asset) => asset === `${baseName}.css`);
+      // 提取基础名称，去掉 contenthash 和扩展名
+      const baseName = jsFile.replace(/\.[a-f0-9]+\.js$/, '').replace(/\.js$/, '');
+      const cssFile = assets.find((asset) =>
+        asset.match(new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.[a-f0-9]+\\.css$`)) ||
+        asset === `${baseName}.css`
+      );
 
       scripts.contentScripts.push({
         js: jsFile,
@@ -87,22 +91,27 @@ class ManifestProcessorPlugin {
 
       const files = fs.readdirSync(chromePath);
 
-      // 检测 background script
-      if (files.includes('background.js')) {
-        scripts.background = 'chrome/background.js';
+      // 检测 background script (支持 contenthash)
+      const backgroundFile = files.find(file =>
+        file.match(/^background\.[a-f0-9]+\.js$/) || file === 'background.js'
+      );
+      if (backgroundFile) {
+        scripts.background = `chrome/${backgroundFile}`;
       }
 
-      // 检测 content scripts
-      const contentScriptPattern = /^content-script(?:-\w+)?\.js$/;
+      // 检测 content scripts (支持 contenthash)
+      const contentScriptPattern = /^content-script(?:-\w+)?(?:\.[a-f0-9]+)?\.js$/;
       const contentScriptFiles = files.filter((file) =>
         contentScriptPattern.test(file)
       );
 
       contentScriptFiles.forEach((jsFile) => {
-        const baseName = jsFile.replace(/\.js$/, '');
-        const cssFile = files.includes(`${baseName}.css`)
-          ? `${baseName}.css`
-          : null;
+        // 提取基础名称，去掉 contenthash 和扩展名
+        const baseName = jsFile.replace(/\.[a-f0-9]+\.js$/, '').replace(/\.js$/, '');
+        const cssFile = files.find(file =>
+          file.match(new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.[a-f0-9]+\\.css$`)) ||
+          file === `${baseName}.css`
+        );
 
         scripts.contentScripts.push({
           js: `chrome/${jsFile}`,
@@ -151,7 +160,7 @@ class ManifestProcessorPlugin {
                     all_frames: true,
                   };
 
-                  // 在生产环境或有 CSS 文件时添加 CSS
+                  // 在生产环境下添加 CSS 文件
                   if (!this.options.isDev && script.css) {
                     contentScript.css = [script.css];
                   }
@@ -161,7 +170,7 @@ class ManifestProcessorPlugin {
               );
             }
           } else {
-            // 原有逻辑：在开发环境下，移除 content_scripts 中的 css 字段
+            // 在开发环境下，移除 content_scripts 中的 css 字段
             if (this.options.isDev && manifest.content_scripts) {
               manifest.content_scripts = manifest.content_scripts.map(
                 (script) => {

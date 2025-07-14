@@ -97,6 +97,7 @@ export default {
     new ManifestProcessorPlugin({
       isDev: true,
       autoDetectScripts: true,
+      outputPath: 'manifest.json',
     }),
   ],
   optimization: {

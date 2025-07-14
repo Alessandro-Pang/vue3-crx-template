@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2024-10-31 21:56:15
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-13 00:18:42
+ * @LastEditTime: 2025-07-14 23:23:24
  * @Description: 
  * @FilePath: /vue3-crx-template/src/views/content-script/main.ts
  */
@@ -48,15 +48,12 @@ function cleanupApp() {
   }
 }
 
-// 将清理函数暴露到全局作用域，供热更新使用
-if(process.env.NODE_ENV === 'development' ) {
-  Object.defineProperty(window, 'cleanupVueApp', {
-    value: cleanupApp,
-    writable: false,
-    enumerable: true,
-    configurable: false,
-  });
-}
+Object.defineProperty(window, 'cleanupVueApp', {
+  value: cleanupApp,
+  writable: false,
+  enumerable: true,
+  configurable: false,
+});
 
 export default () => {
   // 清理之前的应用实例

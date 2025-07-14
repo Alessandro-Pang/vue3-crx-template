@@ -20,15 +20,7 @@
   "side_panel": {
     "default_path": "side-panel.html"
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["chrome/content-script.js"],
-      "css": ["chrome/content-script.css"],
-      "run_at": "document_end",
-      "all_frames": true
-    }
-  ],
+
   "permissions": ["sidePanel", "tabs", "storage", "activeTab", "scripting"],
   "host_permissions": ["<all_urls>"]
 }

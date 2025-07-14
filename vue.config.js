@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2025-07-07 07:50:16
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-14 08:17:46
+ * @LastEditTime: 2025-07-14 08:30:44
  * @Description:
  * @FilePath: /vue3-crx-template/vue.config.js
  */
@@ -96,6 +96,7 @@ export default defineConfig({
       {
         isDev: !isProd,
         autoDetectScripts: true,
+        outputPath: 'manifest.json',
       },
     ]);
 
@@ -104,7 +105,7 @@ export default defineConfig({
         args[0].filename = (pathData) => {
           if (pathData.chunk.name.startsWith('chrome:')) {
             const path = pathData.chunk.name.replace(':', '/');
-            return `${path}.css`;
+            return `${path}.[contenthash].css`;
           }
           return 'css/[name].[contenthash].css';
         };
@@ -119,7 +120,7 @@ export default defineConfig({
       filename: (pathData) => {
         if (pathData.chunk.name.startsWith('chrome:')) {
           const path = pathData.chunk.name.replace(':', '/');
-          return `${path}.js`;
+          return `${path}.[contenthash].js`;
         }
         return 'js/[name].[contenthash].js';
       },
