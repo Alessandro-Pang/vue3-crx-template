@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2025-07-12 23:52:14
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-13 11:52:15
+ * @LastEditTime: 2025-07-14 08:17:40
  * @Description: chrome扩展热重载插件，提供开发时的自动重载功能
  * @FilePath: /vue3-crx-template/webpack-plugins/chrome-hot-reload-plugin.js
  */
@@ -23,12 +23,15 @@ class ChromeHotReloadPlugin {
     this.options = {
       port: options.port || 9090,
       host: options.host || 'localhost',
-      entries: options.entries || ['chrome/background', 'chrome/content-script'],
+      entries: options.entries || [
+        'chrome/background',
+        'chrome/content-script',
+      ],
       debounceDelay: options.debounceDelay || 300,
       maxReconnectAttempts: options.maxReconnectAttempts || 5,
       reconnectDelay: options.reconnectDelay || 1000,
       enableLogging: options.enableLogging !== false, // 默认启用日志
-      ...options
+      ...options,
     };
     this.server = null;
     this.clients = new Set();
@@ -54,17 +57,20 @@ class ChromeHotReloadPlugin {
     this.log('初始化Chrome热重载插件');
 
     // 监听文件变化事件
-    compiler.hooks.invalid.tap('ChromeHotReloadPlugin', (fileName, changeTime) => {
-      if (fileName && !this.isShuttingDown) {
-        // 过滤重复的文件变化事件
-        const lastChangeTime = this.fileWatcher.get(fileName);
-        if (!lastChangeTime || changeTime - lastChangeTime > 100) {
-          this.changedFiles.add(fileName);
-          this.fileWatcher.set(fileName, changeTime || Date.now());
-          this.log(`文件变化: ${fileName}`);
+    compiler.hooks.invalid.tap(
+      'ChromeHotReloadPlugin',
+      (fileName, changeTime) => {
+        if (fileName && !this.isShuttingDown) {
+          // 过滤重复的文件变化事件
+          const lastChangeTime = this.fileWatcher.get(fileName);
+          if (!lastChangeTime || changeTime - lastChangeTime > 100) {
+            this.changedFiles.add(fileName);
+            this.fileWatcher.set(fileName, changeTime || Date.now());
+            this.log(`文件变化: ${fileName}`);
+          }
         }
       }
-    });
+    );
 
     // 在编译开始时保存当前变化的文件
     compiler.hooks.compile.tap('ChromeHotReloadPlugin', () => {
@@ -80,11 +86,13 @@ class ChromeHotReloadPlugin {
       // 检查是否有错误
       if (stats.hasErrors()) {
         this.log('编译有错误，跳过热更新', 'warn');
-        const errors = stats.compilation.errors.map(err => err.message).join('\n');
+        const errors = stats.compilation.errors
+          .map((err) => err.message)
+          .join('\n');
         this.notifyClients({
           type: 'compilation-error',
           timestamp: Date.now(),
-          errors: errors
+          errors: errors,
         });
         return;
       }
@@ -139,7 +147,7 @@ class ChromeHotReloadPlugin {
         port: this.options.port,
         host: this.options.host,
         perMessageDeflate: false, // 禁用压缩以提高性能
-        maxPayload: 1024 * 1024 // 1MB最大负载
+        maxPayload: 1024 * 1024, // 1MB最大负载
       });
 
       server.on('connection', (ws, request) => {
@@ -166,8 +174,8 @@ class ChromeHotReloadPlugin {
           timestamp: Date.now(),
           config: {
             debounceDelay: this.options.debounceDelay,
-            entries: this.options.entries
-          }
+            entries: this.options.entries,
+          },
         });
       });
 
@@ -184,14 +192,15 @@ class ChromeHotReloadPlugin {
       });
 
       server.on('listening', () => {
-        this.log(`WebSocket服务器启动成功: ${this.options.host}:${this.options.port}`);
+        this.log(
+          `WebSocket服务器启动成功: ${this.options.host}:${this.options.port}`
+        );
       });
 
       this.server = server;
 
       // 启动心跳检测
       this.startHeartbeat();
-
     } catch (error) {
       this.log(`启动WebSocket服务器失败: ${error.message}`, 'error');
       this.server = null;
@@ -233,7 +242,7 @@ class ChromeHotReloadPlugin {
     this.heartbeatInterval = setInterval(() => {
       if (this.isShuttingDown) return;
 
-      this.clients.forEach(client => {
+      this.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           if (client.isAlive === false) {
             this.log('客户端心跳超时，断开连接');
@@ -280,7 +289,7 @@ class ChromeHotReloadPlugin {
     let successCount = 0;
     const deadClients = new Set();
 
-    this.clients.forEach(client => {
+    this.clients.forEach((client) => {
       if (this.sendToClient(client, message)) {
         successCount++;
       } else {
@@ -289,7 +298,7 @@ class ChromeHotReloadPlugin {
     });
 
     // 清理失效的客户端
-    deadClients.forEach(client => this.clients.delete(client));
+    deadClients.forEach((client) => this.clients.delete(client));
 
     this.log(`消息已发送给 ${successCount} 个客户端`);
   }
@@ -318,7 +327,7 @@ class ChromeHotReloadPlugin {
         type: 'chrome-reload',
         timestamp: now,
         changedFiles: changedFiles,
-        buildTime: this.lastBuildTime
+        buildTime: this.lastBuildTime,
       });
     }, this.options.debounceDelay);
   }
@@ -331,16 +340,14 @@ class ChromeHotReloadPlugin {
     const injectionPromises = [];
 
     // 并行注入热重载代码
-    this.options.entries.forEach(entry => {
+    this.options.entries.forEach((entry) => {
       const entryPath = path.join(outputPath, `${entry}.js`);
       if (fs.existsSync(entryPath)) {
         const hotReloadFileName = entry.includes('background')
           ? 'hot-reload-background.js'
           : 'hot-reload-content-script.js';
 
-        injectionPromises.push(
-          this.injectToFile(entryPath, hotReloadFileName)
-        );
+        injectionPromises.push(this.injectToFile(entryPath, hotReloadFileName));
       }
     });
 
@@ -353,7 +360,8 @@ class ChromeHotReloadPlugin {
   async injectToFile(targetPath, hotReloadFileName) {
     try {
       const targetContent = await fs.promises.readFile(targetPath, 'utf8');
-      const hotReloadMarker = '// Hot reload code injected by ChromeHotReloadPlugin';
+      const hotReloadMarker =
+        '// Hot reload code injected by ChromeHotReloadPlugin';
 
       // 检查是否已经注入过
       if (targetContent.includes(hotReloadMarker)) {
@@ -375,14 +383,21 @@ class ChromeHotReloadPlugin {
       // 注入配置信息
       const configInjection = `
 // Hot reload configuration
-${hotReloadFileName.includes('background') ? 'self' : 'window'}.HOT_RELOAD_CONFIG = ${JSON.stringify({
-        debounceDelay: this.options.debounceDelay,
-        maxReconnectAttempts: this.options.maxReconnectAttempts,
-        reconnectDelay: this.options.reconnectDelay
-      })};
+${hotReloadFileName.includes('background') ? 'self' : 'window'}.HOT_RELOAD_CONFIG = ${JSON.stringify(
+        {
+          debounceDelay: this.options.debounceDelay,
+          maxReconnectAttempts: this.options.maxReconnectAttempts,
+          reconnectDelay: this.options.reconnectDelay,
+        }
+      )};
 `;
 
-      const injectedContent = targetContent + '\n\n' + hotReloadMarker + configInjection + hotReloadCode;
+      const injectedContent =
+        targetContent +
+        '\n\n' +
+        hotReloadMarker +
+        configInjection +
+        hotReloadCode;
       await fs.promises.writeFile(targetPath, injectedContent);
 
       this.log(`热重载代码注入成功: ${path.basename(targetPath)}`, 'success');
@@ -397,12 +412,20 @@ ${hotReloadFileName.includes('background') ? 'self' : 'window'}.HOT_RELOAD_CONFI
    */
   getChangedFiles(compilation, clearFiles = false) {
     const changedFiles = Array.from(this.currentBuildChangedFiles)
-      .filter(file => {
+      .filter((file) => {
         // 过滤掉不相关的文件类型
         const ext = path.extname(file).toLowerCase();
-        return ['.js', '.ts', '.vue', '.css', '.scss', '.sass', '.less'].includes(ext);
+        return [
+          '.js',
+          '.ts',
+          '.vue',
+          '.css',
+          '.scss',
+          '.sass',
+          '.less',
+        ].includes(ext);
       })
-      .map(file => path.relative(process.cwd(), file));
+      .map((file) => path.relative(process.cwd(), file));
 
     // 只在明确指定时才清空文件列表
     if (clearFiles) {
@@ -438,7 +461,7 @@ ${hotReloadFileName.includes('background') ? 'self' : 'window'}.HOT_RELOAD_CONFI
     // 关闭所有WebSocket连接
     if (this.clients.size > 0) {
       this.log(`关闭 ${this.clients.size} 个客户端连接`);
-      this.clients.forEach(client => {
+      this.clients.forEach((client) => {
         try {
           if (client.readyState === WebSocket.OPEN) {
             client.close(1000, 'Server shutting down');
