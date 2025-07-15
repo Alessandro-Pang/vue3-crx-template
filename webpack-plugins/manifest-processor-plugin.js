@@ -2,12 +2,13 @@
  * @Author: zi.yang
  * @Date: 2025-07-13 11:31:31
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-14 22:48:21
+ * @LastEditTime: 2025-07-15 07:51:54
  * @Description: 动态处理 manifest.json，支持自动写入 content scripts 和 background
  * @FilePath: /vue3-crx-template/webpack-plugins/manifest-processor-plugin.js
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Manifest 处理插件
@@ -21,8 +22,60 @@ class ManifestProcessorPlugin {
       outputPath: 'manifest.json',
       isDev: process.env.NODE_ENV !== 'production',
       autoDetectScripts: true, // 是否自动检测脚本文件
+      contentScriptsConfigPath: 'content-scripts.config.js', // content scripts 配置文件路径
       ...options,
     };
+    this.contentScriptsConfig = null;
+  }
+
+  /**
+   * 加载 content scripts 配置文件
+   * @returns {Object} 配置对象
+   */
+  async loadContentScriptsConfig() {
+    if (this.contentScriptsConfig) {
+      return this.contentScriptsConfig;
+    }
+
+    try {
+      const configPath = path.resolve(process.cwd(), this.options.contentScriptsConfigPath);
+      if (fs.existsSync(configPath)) {
+        const configUrl = pathToFileURL(configPath).href;
+        const configModule = await import(configUrl);
+        this.contentScriptsConfig = configModule.default || {};
+      }
+    } catch (error) {
+      console.warn('加载 content scripts 配置文件失败，使用默认配置:', error.message);
+    }
+
+    if (!this.contentScriptsConfig) {
+      this.contentScriptsConfig = {
+        default: {
+          matches: ['<all_urls>'],
+          run_at: 'document_end',
+          all_frames: true,
+        }
+      };
+    }
+
+    return this.contentScriptsConfig;
+  }
+
+  /**
+   * 获取指定 content script 的配置
+   * @param {string} scriptName script 名称（不含扩展名）
+   * @param {Object} config 配置对象
+   * @returns {Object} script 配置
+   */
+  getContentScriptConfig(scriptName, config) {
+    // 移除路径前缀和扩展名，提取纯文件名
+    // 例如: chrome/content-script-ecommerce.abc123.js -> content-script-ecommerce
+    let baseName = scriptName.replace(/^chrome\//, '');
+    baseName = baseName.replace(/\.[a-f0-9]+\.js$/, '');
+    baseName = baseName.replace(/\.js$/, '');
+
+    // 优先使用具体配置，否则使用默认配置
+    return config[baseName] || config.default;
   }
 
   /**
@@ -128,7 +181,7 @@ class ManifestProcessorPlugin {
   apply(compiler) {
     compiler.hooks.emit.tapAsync(
       'ManifestProcessorPlugin',
-      (compilation, callback) => {
+      async (compilation, callback) => {
         try {
           // 读取原始 manifest.json
           const manifestPath = path.resolve(
@@ -141,6 +194,7 @@ class ManifestProcessorPlugin {
           // 如果启用自动检测脚本
           if (this.options.autoDetectScripts) {
             const detectedScripts = this.detectScripts(compilation);
+            const config = await this.loadContentScriptsConfig();
 
             // 动态设置 background
             if (detectedScripts.background) {
@@ -153,11 +207,12 @@ class ManifestProcessorPlugin {
             if (detectedScripts.contentScripts.length > 0) {
               manifest.content_scripts = detectedScripts.contentScripts.map(
                 (script) => {
+                  // 获取该 script 的自定义配置
+                  const scriptConfig = this.getContentScriptConfig(script.js, config);
+
                   const contentScript = {
-                    matches: ['<all_urls>'],
+                    ...scriptConfig,
                     js: [script.js],
-                    run_at: 'document_end',
-                    all_frames: true,
                   };
 
                   // 在生产环境下添加 CSS 文件
