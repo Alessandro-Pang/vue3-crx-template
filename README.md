@@ -105,6 +105,86 @@ Chrome 侧边栏页面，提供持久化的用户界面。
 
 注入到网页中的脚本，可以与页面内容进行交互。
 
+#### 自动加载机制
+
+项目支持 Content Script 的自动检测和加载：
+
+- **自动检测**：构建时自动扫描 `src/chrome/` 目录下的 `content-script*.ts` 文件
+- **动态注册**：自动将检测到的脚本添加到 `manifest.json` 的 `content_scripts` 字段
+- **命名规则**：支持 `content-script.ts`、`content-script-social.ts`、`content-script-ecommerce.ts` 等命名方式
+
+#### 自定义配置
+
+通过 `content-scripts.config.js` 文件可以为每个 Content Script 配置不同的属性：
+
+```javascript
+export default {
+  // 默认配置，适用于所有未单独配置的 content script
+  default: {
+    matches: ['<all_urls>'],
+    run_at: 'document_end',
+    all_frames: false,
+    exclude_matches: []
+  },
+
+  // 为特定的 content script 配置
+  'content-script': {
+    matches: ['<all_urls>'],
+    run_at: 'document_end',
+    all_frames: false,
+    exclude_matches: []
+  },
+
+  'content-script-social': {
+    matches: ['*://*.twitter.com/*', '*://*.facebook.com/*'],
+    run_at: 'document_idle',
+    all_frames: true
+  },
+
+  'content-script-ecommerce': {
+    matches: ['*://*.amazon.com/*', '*://*.taobao.com/*'],
+    run_at: 'document_start',
+    world: 'MAIN'
+  }
+};
+```
+
+**支持的配置选项：**
+
+- `matches`: 匹配的网页 URL 模式
+- `exclude_matches`: 排除的网页 URL 模式
+- `include_globs`: 包含的 glob 模式
+- `exclude_globs`: 排除的 glob 模式
+- `run_at`: 脚本运行时机（`document_start`、`document_end`、`document_idle`）
+- `all_frames`: 是否在所有框架中运行
+- `world`: 脚本运行环境（`ISOLATED`、`MAIN`）
+
+#### 添加新的 Content Script
+
+1. 在 `src/chrome/` 目录下创建新的脚本文件，如 `content-script-custom.ts`
+2. 在 `content-scripts.config.js` 中添加对应配置（可选，会使用默认配置）
+3. 构建时会自动检测并添加到 manifest.json
+
+#### 多脚本注入示例
+
+```typescript
+// src/chrome/content-script-social.ts
+import createVueApp from '@/views/content-script-test/main';
+
+// 需要注入多个 content-script 时，最好使用 IIFE 立即执行函数包裹，这样可以避免全局变量污染
+// 否则，如果两个 content-script 都使用了同一个全局变量，那么它们之间就会互相影响。
+// 例如：同时使用 const 声明 div 变量，就会报错：
+//   Cannot redeclare block-scoped variable 'div'.
+(() => {
+  const div = document.createElement('div');
+  div.style.position = 'absolute';
+  div.style.top = '100px';
+  div.style.left = '100px';
+  document.body.appendChild(div);
+  createVueApp(div);
+})();
+```
+
 ## 🛠️ 技术栈
 
 - **前端框架**: Vue 3 + Composition API
