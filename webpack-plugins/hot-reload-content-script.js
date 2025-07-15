@@ -2,7 +2,7 @@
  * @Author: zi.yang
  * @Date: 2025-07-12 23:52:14
  * @LastEditors: zi.yang
- * @LastEditTime: 2025-07-14 08:17:25
+ * @LastEditTime: 2025-07-15 08:14:14
  * @Description: 热重载客户端代码 - 将在开发模式下注入到 content script 中
  * @FilePath: /vue3-crx-template/webpack-plugins/hot-reload-content-script.js
  */
@@ -43,15 +43,6 @@
     }
 
     lastReloadTime = now;
-
-    try {
-      // 尝试调用Vue应用的清理函数
-      if (window.cleanupVueApp && typeof window.cleanupVueApp === 'function') {
-        window.cleanupVueApp();
-      }
-    } catch (error) {
-      console.warn('[HotReload] 清理Vue应用时出错:', error);
-    }
 
     // 清理全局变量
     try {
