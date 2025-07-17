@@ -7,7 +7,7 @@
  * @FilePath: /vue3-crx-template/src/chrome/content-script.ts
  */
 
-import createVueApp from '@/views/content-script/main';
+import createVueApp from '@/pages/content-script/main';
 
 // 初始化 Vue 应用
 createVueApp();
